@@ -22,5 +22,38 @@ const storage = firebaseApp.storage()
 
 //enable google from authentication (in firebase)
 export async function signInWithGoogle() {
-  new firebase.
+  const provider = new firebase.auth.GoogleAuthProvider()
+  await auth.signInWithPopup(provider)
+  window.location.reload() //redirect
+}
+
+export function checkAuth(cb) {
+  return auth.onAuthStateChanged(cb)
+}
+
+//logout
+export async function logOut() {
+  await auth.signOut()
+  window.location.reload()
+}
+
+export async function getCollection(id) {
+  const snapshot = await db.collection(id).get()
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+  console.log(data)
+}
+
+export async function getUserLists(userId) {
+  const snapshot = await db
+    .collection('lists')
+    .where('author', '==', userId)
+    .get()
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
 }
