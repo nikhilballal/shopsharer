@@ -49,7 +49,8 @@ export async function getCollection(id) {
 export async function getUserLists(userId) {
   const snapshot = await db
     .collection('lists')
-    .where('author', '==', userId)
+    // .where('author', '==', userId)
+    .where('userIds', 'array-contains', userId)
     .get()
 
   return snapshot.docs.map((doc) => ({
@@ -106,4 +107,62 @@ export async function getList(listId) {
     console.error(error)
     throw Error(error)
   }
+}
+
+export async function createListItem({ user, listId, item }) {
+  try {
+    const response = await fetch(
+      `https://screenshotapi.net/api/v1/screenshot?url=${item.link}&token=4K4HGFAYYB8DAKE1Q1A8WMBZZG1BYJWN`
+    )
+    const { screenshot } = await response.json()
+    db.collection('lists')
+      .doc(listId)
+      .collection('items')
+      .add({
+        name: item.name,
+        link: item.link,
+        image: screenshot,
+        created: firebase.firestore.FieldValue.serverTimestamp(),
+        author: {
+          id: user.uid,
+          username: user.displayName,
+        },
+      })
+  } catch (error) {
+    console.error(error)
+    throw new Error(error)
+  }
+}
+
+export function subscribeToListItems(listId, cb) {
+  return db
+    .collection('lists')
+    .doc(listId)
+    .collection('items')
+    .orderBy('created', 'desc')
+    .onSnapshot(cb)
+}
+
+//delete items
+export function deleteListItem(listId, itemId) {
+  return db
+    .collection('lists')
+    .doc(listId)
+    .collection('items')
+    .doc(itemId)
+    .delete()
+}
+
+export async function addUserToList(user, listId) {
+  await db
+    .collection('lists')
+    .doc(listId)
+    .update({
+      userIds: firebase.firestore.FieldValue.arrayUnion(user.uid),
+      users: firebase.firestore.FieldValue.arrayUnion({
+        id: user.uid,
+        name: user.displayName,
+      }),
+    })
+  window.location.reload()
 }
